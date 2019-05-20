@@ -181,9 +181,9 @@ np.savetxt(outdir + 'matrix/cell_4238_mCH_all_integrated_svd50_p50_rs0.txt', y, 
 # embedding by chromosome interations
 
 hg19dim = [249250621,243199373,198022430,191154276,180915260,171115067,159138663,146364022,141213431,135534747,135006516,133851895,115169878,107349540,102531392,90354753,81195210,78077248,59128983,63025520,48129895,51304566,155270560]
-network = np.loadtxt('/cellar/users/zhoujt1994/projects/scHiC/MethylHiC/PFC/cell_matrix/sample_list_hic.txt', dtype=np.str)
+network = np.loadtxt(outdir + 'cell_matrix/sample_list_hic.txt', dtype=np.str)
 chrom = [str(i+1) for i in range(22)]
 chromsize = {chrom[i]:hg19dim[i] for i in range(len(chrom))}
 nc = 10
 cluster, matrix_reduce = hicluster_gpu(network, chromsize, nc=nc)
-np.save('/cellar/users/zhoujt1994/projects/scHiC/MethylHiC/PFC/embedding/cell_4238_1mb_hicluster_pca100.npy', matrix_reduce[:, :100])
+np.save(outdir + 'matrix/cell_4238_1mb_hicluster_pca100.npy', matrix_reduce[:, :100])
