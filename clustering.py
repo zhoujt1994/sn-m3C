@@ -31,13 +31,11 @@ np.savetxt(outdir + 'matrix/cell_4238_mCH_all_integrated_svd50_p50_rs0.txt', y, 
 # clustering by mCG
 
 ndim = 50
-#g1 = knn(np.load(outdir + 'matrix/cell_4238_mCG_all_integrated_svd100.npy')[:, :ndim], n_neighbors=20)
-g = knn(np.load(outdir + 'matrix/cell_4238_mCH_all_integrated_svd100.npy')[:, :ndim], n_neighbors=20)
+g = knn(np.load(outdir + 'matrix/cell_4238_mCG_all_integrated_svd100.npy')[:, :ndim], n_neighbors=20)
 inter = g.dot(g.T)
 diag = inter.diagonal()
 jac = inter.astype(float) / (diag[None, :] + diag[:, None] - inter)
 adj = nx.from_numpy_matrix(g.multiply(jac).toarray())
-# adj = nx.from_numpy_matrix((g1+g2).toarray())
 knnjaccluster = {}
 for res in [0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.2, 1.6, 2.0, 2.5, 3.0, 4.0]:
 	partition = community.best_partition(adj,resolution=res)
@@ -51,6 +49,8 @@ np.save(outdir + 'matrix/cell_4238_mCH_all_integrated_svd50_knn20_louvain.npy', 
 
 # clustering neurons by mCH
 
+knnjaccluster = np.load(outdir + 'matrix/cell_4238_mCG_all_integrated_svd50_knn20_jac_louvain.npy').item()
+label = knnjaccluster[1.6]
 neufilter = np.array([x in [0,1,3,4,6,8,12,13,14] for x in label])
 rate_bin = np.load(outdir + 'matrix/cell_4238_rate.100kbin.mCH.npy')[neufilter]
 read_bin = np.load(outdir + 'matrix/cell_4238_read.100kbin.mCH.npy')[neufilter]
@@ -90,7 +90,6 @@ for i in range(np.sum(binfilter)):
 data.append(rateb)
 binlist.append(['-'.join(x.tolist()) for x in bin_all[binfilter]])
 
-
 integrated, corrected, genes = scanorama.correct(data, binlist, return_dimred=True, hvg=None)
 
 rateb_reduce = np.concatenate(integrated)
@@ -117,34 +116,6 @@ for res in [0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.2, 1.6, 2.0, 2.5, 3.0, 4.0]:
 	print(res, count)
 
 np.save(outdir + 'matrix/neu_1614_mCH_all_integrated_svd50_knn20_jac_louvain.npy', knnjaccluster)
-
-neuy = y[neufilter]
-for res in [0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.2, 1.6, 2.0, 2.5, 3.0, 4.0]:
-	label = knnjaccluster[res]
-	nc = len(set(label))
-	count = np.array([sum(label==i) for i in range(nc)])
-	tot = 0
-	fig,ax = plt.subplots()
-	ax.set_frame_on(False)
-	ax.axis('off')
-	for i in [2,5,7,9,10,11,15,16,17]:
-		cell = (cluster==i)
-		ax.scatter(y[cell,0],y[cell,1],s=8,c=color[i],alpha=0.8,edgecolors='none',label='cluster'+str(i+1))
-		ax.text(np.median(y[cell,0]),np.median(y[cell,1]),str(i+1),fontsize=12,horizontalalignment='center',verticalalignment='center')
-	for i in range(max(label)+1):
-		if count[i]>5:
-			cell = (label==i)
-			ax.scatter(neuy[cell,0], neuy[cell,1], s=8, c=color[tot], alpha=0.8, edgecolors='none', label='cluster'+str(tot+1))
-			ax.text(np.median(neuy[cell,0]),np.median(neuy[cell,1]),str(tot+1),fontsize=12,horizontalalignment='center',verticalalignment='center')
-			tot+=1
-	plt.legend(bbox_to_anchor=(-0.25,1), loc="upper left")
-	plt.tight_layout()
-	plt.savefig(outdir + 'plot/cell_4238_mCG_all_integrated_svd50_p50_rs0.mCG_all_integrated_svd50_knn20_jac_louvain_res1.6.neu_mCH_all_integrated_svd50_knn20_jac_louvain_res'+str(res)+'.pdf',bbox_inches="tight",transparent=True)
-	plt.close()
-
-
-pubbatch = np.array(neubatch.tolist() + [3 for i in range(len(meta_tmp))])
-clustername = np.sort(list(set(meta_tmp[:,-1])))
 
 label = np.load(outdir + 'matrix/neu_1614_mCH_all_integrated_svd50_knn20_jac_louvain.npy').item()[1.6]
 nc = len(set(label))
@@ -177,7 +148,6 @@ cluster[allmerge=='Neuron'] = neumerge.copy()
 subcluster = alllabel.copy()
 subcluster[allmerge=='Neuron'] = neulabel.copy()
 
-
 # embedding by mCH
 
 rate_bin = np.load(outdir + 'matrix/cell_4238_rate.100kbin.mCH.npy')
@@ -208,5 +178,12 @@ y = tsne.fit_transform(rateb_reduce[:, :ndim])
 np.save(outdir + 'matrix/cell_4238_mCH_all_integrated_svd100.npy', rateb_reduce)
 np.savetxt(outdir + 'matrix/cell_4238_mCH_all_integrated_svd50_p50_rs0.txt', y, delimiter='\t', fmt='%s')
 
+# embedding by chromosome interations
 
-
+hg19dim = [249250621,243199373,198022430,191154276,180915260,171115067,159138663,146364022,141213431,135534747,135006516,133851895,115169878,107349540,102531392,90354753,81195210,78077248,59128983,63025520,48129895,51304566,155270560]
+network = np.loadtxt('/cellar/users/zhoujt1994/projects/scHiC/MethylHiC/PFC/cell_matrix/sample_list_hic.txt', dtype=np.str)
+chrom = [str(i+1) for i in range(22)]
+chromsize = {chrom[i]:hg19dim[i] for i in range(len(chrom))}
+nc = 10
+cluster, matrix_reduce = hicluster_gpu(network, chromsize, nc=nc)
+np.save('/cellar/users/zhoujt1994/projects/scHiC/MethylHiC/PFC/embedding/cell_4238_1mb_hicluster_pca100.npy', matrix_reduce[:, :100])
